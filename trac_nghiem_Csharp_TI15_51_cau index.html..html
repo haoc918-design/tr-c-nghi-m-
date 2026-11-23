@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trắc nghiệm ôn thi C# - 51 câu</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--text:#172033;--muted:#667085;--blue:#2563eb;--blue2:#eaf1ff;--green:#16834a;--greenbg:#e9f8ef;--red:#c62828;--redbg:#fff0f0;--border:#e3e8f0}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text);line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:22px 16px 48px}
+header{margin-bottom:18px}h1{font-size:clamp(24px,4vw,34px);margin:0 0 6px}header p{margin:0;color:var(--muted)}
+.panel,.quiz,.result{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 5px 22px #1b31500a}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.stat{background:#f8faff;border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.stat strong{display:block;font-size:22px}.stat span{font-size:13px;color:var(--muted)}
+.progress{height:9px;background:#e8edf5;border-radius:20px;overflow:hidden;margin:12px 0 18px}.bar{height:100%;width:0;background:var(--blue);transition:width .2s}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:14px}
+.question{font-size:20px;font-weight:700;margin:12px 0 18px}
+.options{display:grid;gap:10px}
+.option{width:100%;text-align:left;border:1.5px solid var(--border);border-radius:12px;background:white;padding:13px 15px;font-size:16px;cursor:pointer;color:var(--text);transition:.15s}
+.option:hover:not(:disabled){border-color:var(--blue);background:var(--blue2)}
+.option:disabled{cursor:default;opacity:1}
+.option.correct{border-color:var(--green);background:var(--greenbg);color:#12683b;font-weight:700}
+.option.wrong{border-color:var(--red);background:var(--redbg);color:var(--red);font-weight:700}
+.feedback{margin-top:15px;padding:13px 15px;border-radius:12px;display:none}
+.feedback.show{display:block}.feedback.good{background:var(--greenbg);color:#12683b}.feedback.bad{background:var(--redbg);color:var(--red)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button.action{border:0;border-radius:11px;padding:12px 18px;font-weight:700;font-size:15px;cursor:pointer}
+.primary{background:var(--blue);color:white}.secondary{background:#edf1f7;color:#344054}
+button:disabled{opacity:.45;cursor:not-allowed}
+.result{display:none;margin-top:18px}.result h2{margin-top:0}
+.review{margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+.review-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.review-item small{color:var(--muted)}
+.jump{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.jump button{width:35px;height:35px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer}
+.jump button.done{background:var(--greenbg);border-color:#9dd7b4;color:var(--green)}
+.jump button.current{outline:2px solid var(--blue)}
+.note{font-size:13px;color:var(--muted);margin-top:12px}
+@media(max-width:560px){.wrap{padding:16px 11px 32px}.panel,.quiz,.result{padding:15px}.question{font-size:18px}.stats{gap:6px}.stat{padding:9px 4px}.stat strong{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Ôn thi trắc nghiệm C#</h1>
+<p>Bộ đề TI15 · 51 câu · Chọn đáp án và xem đúng/sai ngay lập tức.</p>
+</header>
+<section class="panel">
+<div class="stats">
+ <div class="stat"><strong id="score">0</strong><span>Điểm đúng</span></div>
+ <div class="stat"><strong id="answered">0/51</strong><span>Đã làm</span></div>
+ <div class="stat"><strong id="percent">0%</strong><span>Tỷ lệ đúng</span></div>
+</div>
+<div class="topline"><span id="progressText">Câu 1 / 51</span><span id="remaining">Còn 51 câu</span></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="jump" id="jump"></div>
+</section>
+<section class="quiz" style="margin-top:16px">
+<div class="topline"><span id="category">BỘ CÂU HỎI TRẮC NGHIỆM</span><span id="status">Chưa trả lời</span></div>
+<div class="question" id="question"></div>
+<div class="options" id="options"></div>
+<div class="feedback" id="feedback" aria-live="polite"></div>
+<div class="actions">
+<button class="action secondary" id="prev">← Câu trước</button>
+<button class="action primary" id="next" disabled>Câu tiếp theo →</button>
+<button class="action secondary" id="finish">Nộp bài / Xem kết quả</button>
+</div>
+<p class="note">Bạn có thể chuyển qua lại giữa các câu. Mỗi câu chỉ ghi nhận lựa chọn đầu tiên để điểm số không bị thay đổi nhiều lần.</p>
+</section>
+<section class="result" id="result"></section>
+</div>
+<script>
+const questions = [
+["C# là gì?",["Hệ điều hành","Ngôn ngữ lập trình","Cơ sở dữ liệu","Trình duyệt"],1,"C# là một ngôn ngữ lập trình do Microsoft phát triển."],
+[".NET là gì?",["Nền tảng phát triển và chạy ứng dụng","Một biến","Một vòng lặp","Một toán tử"],0,".NET là nền tảng cung cấp môi trường và thư viện để phát triển, chạy ứng dụng."],
+["Thành phần nào thực thi mã .NET?",["CLR","CSV","CSS","HTML"],0,"CLR (Common Language Runtime) là môi trường thực thi mã .NET."],
+["Từ khóa nào khai báo lớp?",["object","class","method","namespace"],1,"Dùng từ khóa class để khai báo một lớp."],
+["Điểm bắt đầu trong cấu trúc chương trình truyền thống là?",["Start()","Run()","Main()","Begin()"],2,"Trong cấu trúc chương trình C# truyền thống, Main() là điểm bắt đầu thực thi."],
+["static member thuộc về?",["Mỗi object riêng biệt","Kiểu/lớp","Một vòng lặp","Một namespace duy nhất"],1,"Thành viên static thuộc về kiểu/lớp, không cần tạo object để truy cập."],
+["void biểu thị?",["Trả về int","Không trả về giá trị","Trả về string","Hằng số"],1,"void cho biết phương thức không trả về giá trị."],
+["Kiểu nào lưu true hoặc false?",["char","bool","int","string"],1,"bool lưu một trong hai giá trị true hoặc false."],
+["Literal chuỗi viết bằng?",["Nháy đơn","Nháy kép","Ngoặc vuông","Ngoặc nhọn"],1,"Chuỗi (string literal) được đặt trong dấu nháy kép, ví dụ: \"Hello\"."],
+["Tên nào hợp lệ?",["3name","my name","_score","class"],2,"_score hợp lệ. Tên biến không được bắt đầu bằng số, chứa khoảng trắng hoặc trùng từ khóa."],
+["var có nghĩa là?",["Không có kiểu","Compiler suy luận kiểu lúc biên dịch","Luôn là object","Có thể đổi kiểu tùy ý"],1,"var vẫn có kiểu dữ liệu cụ thể; compiler suy luận kiểu khi biên dịch."],
+["const dùng để?",["Khai báo hằng","Khai báo vòng lặp","Tạo lớp con","Gọi phương thức"],0,"const khai báo hằng số, giá trị không thể thay đổi sau khi khai báo."],
+["Field int của object không gán thường có giá trị?",["null","1","0","-1"],2,"Field kiểu int của object có giá trị mặc định là 0."],
+["Giá trị mặc định của bool field là?",["true","false","0","null"],1,"Field kiểu bool có giá trị mặc định là false."],
+["Kết quả 7 / 2 với hai toán hạng int là?",["3.5","4","3","Lỗi"],2,"Chia hai số nguyên cho kết quả nguyên; phần thập phân bị bỏ, nên kết quả là 3."],
+["Toán tử AND có short-circuit là?",["&","&&","||","!"],1,"&& là AND có short-circuit: nếu vế trái false thì không cần đánh giá vế phải."],
+["Toán tử so sánh bằng là?",["=","==",":=","!="],1,"== dùng để so sánh bằng; = dùng để gán giá trị."],
+["Console.ReadLine() thường trả về kiểu?",["int","bool","string","char"],2,"Console.ReadLine() đọc một dòng và trả về string (hoặc null trong trường hợp kết thúc đầu vào)."],
+["Phương thức chuyển chuỗi sang int có thể gây FormatException là?",["int.Parse","Console.WriteLine","Math.Abs","string.Length"],0,"int.Parse chuyển chuỗi sang int và có thể gây FormatException nếu chuỗi không đúng định dạng số."],
+["if yêu cầu điều kiện kiểu?",["int","bool","string","char"],1,"Điều kiện của if phải là biểu thức bool, tức true hoặc false."],
+["Vòng lặp nào chạy thân ít nhất một lần?",["for","while","do-while","foreach"],2,"do-while kiểm tra điều kiện sau khi chạy thân vòng lặp, nên thân luôn chạy ít nhất một lần."],
+["break dùng để?",["Bỏ lượt hiện tại","Thoát vòng lặp/switch gần nhất","Khai báo biến","Trả về giá trị"],1,"break thoát khỏi vòng lặp hoặc switch gần nhất."],
+["Chỉ số phần tử đầu tiên của mảng là?",["-1","0","1","Length"],1,"Mảng C# đánh chỉ số từ 0."],
+["Mảng 5 phần tử có chỉ số cuối là?",["5","4","6","0"],1,"Mảng có 5 phần tử có chỉ số từ 0 đến 4; chỉ số cuối là 4."],
+["Mảng lưu các phần tử?",["Bắt buộc khác kiểu","Cùng kiểu phần tử","Chỉ chuỗi","Chỉ số nguyên"],1,"Các phần tử trong một mảng có cùng kiểu dữ liệu."],
+["string trong C# là?",["Kiểu giá trị","Kiểu tham chiếu immutable","Kiểu con trỏ","Kiểu enum"],1,"string là kiểu tham chiếu và immutable, nghĩa là nội dung chuỗi không bị sửa trực tiếp; thao tác tạo ra chuỗi mới."],
+["Phương thức void có thể?",["Không trả về giá trị","Bắt buộc trả int","Bắt buộc trả string","Không có thân"],0,"Phương thức void thực hiện công việc nhưng không trả về giá trị."],
+["Overload hợp lệ dựa trên khác biệt?",["Chỉ kiểu trả về","Danh sách tham số","Tên namespace","Nội dung thân"],1,"Overload cần khác danh sách tham số, chẳng hạn khác số lượng, kiểu hoặc thứ tự tham số."],
+["OOP có bao nhiêu tính chất chính thường được nhắc?",["2","3","4","5"],2,"Bốn tính chất thường nhắc đến là đóng gói, kế thừa, đa hình và trừu tượng."],
+["Class là?",["Đối tượng cụ thể","Bản thiết kế/kiểu","Biến cục bộ","Toán tử"],1,"Class là bản thiết kế/kiểu dùng để tạo ra các object."],
+["Object là?",["Thể hiện của class","Namespace","Từ khóa điều kiện","Kiểu trả về"],0,"Object là một thể hiện (instance) được tạo từ class."],
+["Constructor có tên?",["Main","Trùng tên class","new","void"],1,"Constructor có tên trùng với tên class."],
+["Constructor có kiểu trả về không?",["int","void","Không có kiểu trả về","bool"],2,"Constructor không khai báo kiểu trả về, kể cả void."],
+["Từ khóa tạo object thường là?",["create","new","make","object"],1,"Dùng từ khóa new để tạo object, ví dụ: Student s = new Student();"],
+["this chỉ?",["Lớp cha","Instance hiện tại","Namespace","Mảng"],1,"this tham chiếu đến object/instance hiện tại."],
+["private truy cập được?",["Từ mọi nơi","Chỉ trong kiểu khai báo","Chỉ assembly khác","Chỉ lớp con bất kỳ"],1,"private giới hạn truy cập trong kiểu (class/struct) khai báo thành viên đó."],
+["Kế thừa class trong C# cho phép lớp con kế thừa trực tiếp?",["Nhiều class","Một class","Không class nào","Tùy số lượng vô hạn"],1,"Một class C# chỉ có thể kế thừa trực tiếp từ một class cơ sở."],
+["Dấu dùng thể hiện kế thừa/triển khai?",["->",":","=>","=="],1,"Dấu hai chấm : dùng để khai báo lớp kế thừa hoặc triển khai interface."],
+["virtual cho phép?",["Cấm kế thừa","Có thể override ở lớp dẫn xuất","Tạo hằng","Khai báo namespace"],1,"virtual cho phép thành viên được override trong lớp dẫn xuất."],
+["override dùng để?",["Ghi đè thành viên virtual/abstract phù hợp","Tạo biến","Tạo mảng","Thoát vòng lặp"],0,"override cung cấp phần triển khai mới cho thành viên virtual/abstract phù hợp của lớp cha."],
+["abstract class có thể tạo instance trực tiếp không?",["Có","Không","Chỉ khi static","Luôn luôn"],1,"Không thể tạo object trực tiếp từ abstract class; cần tạo lớp con cụ thể."],
+["Một class có thể triển khai bao nhiêu interface?",["Chỉ một","Nhiều","Không thể","Tối đa hai"],1,"Một class có thể triển khai nhiều interface."],
+["Encapsulation chủ yếu là?",["Che giấu và kiểm soát dữ liệu","Tăng tốc vòng lặp","Chuyển chuỗi","Vẽ biểu đồ"],0,"Đóng gói giúp che giấu dữ liệu bên trong và kiểm soát cách truy cập/thay đổi dữ liệu."],
+["Polymorphism nghĩa là?",["Đa hình","Đóng gói","Kế thừa","Biến cục bộ"],0,"Polymorphism nghĩa là đa hình: cùng cách gọi nhưng có thể có hành vi khác nhau tùy đối tượng."],
+["Abstraction nghĩa là?",["Trừu tượng hóa","Tăng biến","Ép kiểu","Nhập dữ liệu"],0,"Abstraction là trừu tượng hóa: tập trung vào đặc điểm cần thiết và ẩn chi tiết triển khai."],
+["sealed class có đặc điểm?",["Không thể được kế thừa","Luôn abstract","Chỉ có static","Không có constructor"],0,"sealed class không cho phép class khác kế thừa từ nó."],
+["Kiểu struct là?",["Kiểu tham chiếu","Kiểu giá trị","Namespace","Interface"],1,"struct là kiểu giá trị (value type)."],
+["null thường biểu thị?",["Số 0","Không có tham chiếu/giá trị","true","Chuỗi rỗng"],1,"null thường biểu thị không có đối tượng được tham chiếu; nó không đồng nghĩa với số 0 hay chuỗi rỗng."],
+["try-catch dùng để?",["Xử lý ngoại lệ","Khai báo class","Tạo constructor","Lặp"],0,"try-catch dùng để bắt và xử lý ngoại lệ (exception) phát sinh khi chạy chương trình."],
+["C# có phân biệt chữ hoa chữ thường không?",["Không","Có","Chỉ với class","Chỉ với biến"],1,"C# phân biệt chữ hoa và chữ thường; ví dụ name và Name là hai tên khác nhau."],
+["Nếu chỉ khác kiểu trả về, hai method có overload được không?",["Có","Không","Chỉ static","Chỉ private"],1,"Không. Chỉ khác kiểu trả về là chưa đủ để overload; danh sách tham số phải khác."]
+];
+
+let current=0;
+const answers=Array(questions.length).fill(null);
+const letters=["A","B","C","D"];
+const $=id=>document.getElementById(id);
+
+function render(){
+ const q=questions[current], chosen=answers[current];
+ $("question").textContent=`Câu ${current+1}. ${q[0]}`;
+ $("category").textContent=current<7?"TỔNG QUAN C# VÀ .NET":current<14?"KIỂU DỮ LIỆU VÀ BIẾN":current<20?"TOÁN TỬ VÀ ĐIỀU KIỆN":current<27?"VÒNG LẶP, MẢNG VÀ CHUỖI":current<28?"PHƯƠNG THỨC":current<35?"LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG":current<46?"4 TÍNH CHẤT OOP":"KIẾN THỨC KHÁC";
+ $("status").textContent=chosen===null?"Chưa trả lời":"Đã trả lời";
+ $("options").innerHTML="";
+ q[1].forEach((opt,i)=>{
+  const b=document.createElement("button");b.className="option";b.textContent=`${letters[i]}. ${opt}`;
+  if(chosen!==null){b.disabled=true;if(i===q[2])b.classList.add("correct");if(i===chosen&&chosen!==q[2])b.classList.add("wrong")}
+  b.addEventListener("click",()=>select(i));$("options").appendChild(b);
+ });
+ const fb=$("feedback");fb.className="feedback";fb.textContent="";
+ if(chosen!==null){fb.classList.add("show",chosen===q[2]?"good":"bad");fb.innerHTML=`<strong>${chosen===q[2]?"Chính xác!":"Chưa đúng."}</strong> Đáp án đúng: ${letters[q[2]]}. ${q[1][q[2]]}<br>${q[3]}`;}
+ $("prev").disabled=current===0;
+ $("next").disabled=chosen===null||current===questions.length-1;
+ $("progressText").textContent=`Câu ${current+1} / ${questions.length}`;
+ $("remaining").textContent=`Còn ${answers.filter(a=>a===null).length} câu`;
+ $("bar").style.width=(answers.filter(a=>a!==null).length/questions.length*100)+"%";
+ updateStats();drawJump();
+}
+function select(i){if(answers[current]!==null)return;answers[current]=i;render();}
+function updateStats(){
+ const done=answers.filter(a=>a!==null).length;
+ const correct=answers.reduce((s,a,i)=>s+(a===questions[i][2]?1:0),0);
+ $("score").textContent=correct;$("answered").textContent=`${done}/${questions.length}`;
+ $("percent").textContent=(done?Math.round(correct/done*100):0)+"%";
+}
+function drawJump(){
+ const box=$("jump");box.innerHTML="";
+ questions.forEach((q,i)=>{const b=document.createElement("button");b.textContent=i+1;if(answers[i]!==null)b.classList.add("done");if(i===current)b.classList.add("current");b.title=`Đi đến câu ${i+1}`;b.onclick=()=>{current=i;render();};box.appendChild(b);});
+}
+$("prev").onclick=()=>{if(current>0){current--;render();}};
+$("next").onclick=()=>{if(current<questions.length-1){current++;render();}};
+$("finish").onclick=showResult;
+function showResult(){
+ const done=answers.filter(a=>a!==null).length;
+ const correct=answers.reduce((s,a,i)=>s+(a===questions[i][2]?1:0),0);
+ const wrong=done-correct, blank=questions.length-done;
+ const result=$("result");result.style.display="block";
+ let review="";
+ questions.forEach((q,i)=>{if(answers[i]!==q[2])review+=`<div class="review-item"><strong>Câu ${i+1}: ${q[0]}</strong><br><small>Bạn chọn: ${answers[i]===null?"Chưa làm":letters[answers[i]]+". "+q[1][answers[i]]} · Đáp án đúng: ${letters[q[2]]}. ${q[1][q[2]]}</small><br>${q[3]}</div>`;});
+ result.innerHTML=`<h2>Kết quả bài làm</h2><div class="stats"><div class="stat"><strong>${correct}/${questions.length}</strong><span>Số câu đúng</span></div><div class="stat"><strong>${wrong}</strong><span>Số câu sai</span></div><div class="stat"><strong>${blank}</strong><span>Chưa làm</span></div></div><p><strong>Tỷ lệ đúng trên toàn bộ đề: ${Math.round(correct/questions.length*100)}%</strong></p><p>${blank?"Bạn còn "+blank+" câu chưa trả lời.":"Bạn đã hoàn thành tất cả câu hỏi."}</p><h3>Những câu cần xem lại</h3>${review||"<p>Xuất sắc! Bạn trả lời đúng tất cả 51 câu.</p>"}<div class="actions"><button class="action primary" onclick="window.scrollTo({top:0,behavior:'smooth'})">Quay lại bài làm</button><button class="action secondary" onclick="restart()">Làm lại từ đầu</button></div>`;
+ result.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function restart(){if(!confirm("Bạn có chắc muốn xóa kết quả và làm lại từ đầu?"))return;answers.fill(null);current=0;$("result").style.display="none";render();window.scrollTo({top:0,behavior:"smooth"});}
+render();
+</script>
+</body>
+</html>
